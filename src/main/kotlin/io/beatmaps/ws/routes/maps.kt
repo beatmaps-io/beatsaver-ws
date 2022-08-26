@@ -12,8 +12,9 @@ fun Route.mapsWebsocket() {
 
     application.rabbitOptional {
         consumeAck("ws.mapStream", WebsocketMessage::class) { _, wsMsg ->
+            val wsMsgStr = inlineJackson.writeValueAsString(wsMsg)
             loopAndTerminateOnError(holder) {
-                it.send(inlineJackson.writeValueAsString(wsMsg))
+                it.send(wsMsgStr)
             }
         }
     }

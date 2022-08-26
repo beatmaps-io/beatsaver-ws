@@ -2,7 +2,7 @@ package io.beatmaps.ws.routes
 
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Beatmap
-import io.beatmaps.common.dbo.Beatmap.joinVersions
+import io.beatmaps.common.dbo.joinVersions
 import io.beatmaps.common.dbo.complexToBeatmap
 import io.beatmaps.common.inlineJackson
 import io.beatmaps.common.rabbitOptional
