@@ -11,23 +11,21 @@ import io.beatmaps.common.rabbitHost
 import io.beatmaps.common.setupAMQP
 import io.beatmaps.common.setupLogging
 import io.beatmaps.ws.routes.websockets
-import io.ktor.application.Application
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.ContentNegotiation
-import io.ktor.features.NotFoundException
-import io.ktor.features.StatusPages
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.cio.websocket.pingPeriod
-import io.ktor.http.content.resources
-import io.ktor.http.content.static
-import io.ktor.jackson.jackson
-import io.ktor.locations.Locations
-import io.ktor.response.respond
-import io.ktor.routing.routing
+import io.ktor.serialization.jackson.jackson
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.locations.Locations
 import io.ktor.server.netty.Netty
-import io.ktor.websocket.WebSockets
+import io.ktor.server.plugins.NotFoundException
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.response.respond
+import io.ktor.server.routing.routing
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.pingPeriod
 import pl.jutupe.ktor_rabbitmq.RabbitMQ
 import java.time.Duration
 
@@ -58,11 +56,11 @@ fun Application.ws() {
 
     install(Locations)
     install(StatusPages) {
-        exception<NotFoundException> {
+        exception<NotFoundException> { call, _ ->
             call.respond(HttpStatusCode.NotFound, ErrorResponse("Not Found"))
         }
 
-        exception<Throwable> { cause ->
+        exception<Throwable> { call, cause ->
             call.respond(HttpStatusCode.InternalServerError, "Internal Server Error")
             throw cause
         }
@@ -87,8 +85,6 @@ fun Application.ws() {
     routing {
         websockets()
 
-        static("/static") {
-            resources()
-        }
+        staticResources("/static", "assets")
     }
 }

@@ -2,9 +2,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    kotlin("jvm") version "1.5.30"
-    kotlin("plugin.serialization") version "1.5.30"
-    id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
+    kotlin("jvm") version "1.9.10"
+    kotlin("plugin.serialization") version "1.9.10"
+    id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
     application
 }
 
@@ -18,11 +18,15 @@ kotlin {
         (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(15))
     }
     sourceSets.all {
-        languageSettings.optIn("kotlin.io.path.ExperimentalPathApi")
-        languageSettings.optIn("io.ktor.locations.KtorExperimentalLocationsAPI")
-        languageSettings.optIn("kotlin.time.ExperimentalTime")
-        languageSettings.optIn("io.ktor.util.KtorExperimentalAPI")
-        languageSettings.optIn("kotlin.ExperimentalUnsignedTypes")
+        with(languageSettings) {
+            optIn("kotlin.io.path.ExperimentalPathApi")
+            optIn("io.ktor.server.locations.KtorExperimentalLocationsAPI")
+            optIn("kotlin.time.ExperimentalTime")
+            optIn("io.ktor.util.KtorExperimentalAPI")
+            optIn("kotlin.ExperimentalUnsignedTypes")
+            optIn("kotlinx.serialization.ExperimentalSerializationApi")
+            optIn("kotlinx.coroutines.DelicateCoroutinesApi")
+        }
     }
 }
 
@@ -33,21 +37,24 @@ dependencies {
         maven { url = uri("https://artifactory.kirkstall.top-cat.me") }
     }
 
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
-    implementation("io.ktor:ktor-jackson:$ktorVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.1")
+    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
-    implementation("io.ktor:ktor-html-builder:$ktorVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.7.3")
+    implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
     implementation("io.ktor:ktor-client-apache:$ktorVersion")
-    implementation("ch.qos.logback:logback-classic:1.2.3")
-    implementation("io.ktor:ktor-locations:$ktorVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.2.1")
-    implementation("io.ktor:ktor-websockets:$ktorVersion")
-    implementation("io.ktor:ktor-serialization:$ktorVersion")
+    implementation("ch.qos.logback:logback-classic:1.4.7")
+    implementation("io.ktor:ktor-server-forwarded-header:$ktorVersion")
+    implementation("io.ktor:ktor-server-locations:$ktorVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
 
     // Database library
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
@@ -56,9 +63,9 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
 
     // Database drivers
-    implementation("org.postgresql:postgresql:42.1.4")
-    implementation("com.github.JUtupe:ktor-rabbitmq:0.2.0")
-    implementation("com.rabbitmq:amqp-client:5.9.0")
+    implementation("org.postgresql:postgresql:42.5.4")
+    implementation("pl.jutupe:ktor-rabbitmq:0.4.5")
+    implementation("com.rabbitmq:amqp-client:5.16.0")
 
     implementation("io.beatmaps:BeatMaps-CommonMP:1.0.+")
 }
@@ -72,6 +79,7 @@ application {
 }
 
 ktlint {
+    version.set("0.50.0")
     reporters {
         reporter(ReporterType.CHECKSTYLE)
     }

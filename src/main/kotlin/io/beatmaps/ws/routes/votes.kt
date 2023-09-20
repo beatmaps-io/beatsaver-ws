@@ -6,9 +6,9 @@ import io.beatmaps.common.dbo.complexToBeatmap
 import io.beatmaps.common.dbo.joinVersions
 import io.beatmaps.common.inlineJackson
 import io.beatmaps.common.rabbitOptional
-import io.ktor.routing.Route
-import io.ktor.routing.application
-import io.ktor.websocket.webSocket
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.application
+import io.ktor.server.websocket.webSocket
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
