@@ -9,7 +9,13 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.EmptyCoroutineContext
 
 enum class WebsocketMessageType {
-    MAP_UPDATE, MAP_DELETE, VOTE
+    MAP_UPDATE,
+    MAP_DELETE,
+    VOTE,
+    REVIEW_CREATED,
+    REVIEW_UPDATED,
+    REVIEW_DELETED,
+    REVIEW_CURATED
 }
 data class WebsocketMessage(val type: WebsocketMessageType, val msg: Any)
 data class ChannelHolder(var channels: List<Channel<String>> = listOf())
@@ -52,4 +58,5 @@ suspend fun DefaultWebSocketServerSession.websocketConnection(holder: ChannelHol
 fun Route.websockets() {
     mapsWebsocket()
     votesWebsocket()
+    reviewsWebsocket()
 }
