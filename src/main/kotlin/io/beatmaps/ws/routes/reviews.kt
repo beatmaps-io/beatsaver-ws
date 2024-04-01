@@ -10,6 +10,7 @@ import io.ktor.server.websocket.webSocket
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -18,7 +19,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 data class ReviewUpdateInfo(val mapId: Int, val userId: Int)
 
 @Serializable
-data class ReviewWebsocketDAO(
+data class ReviewWebsocketDTO(
     val userId: Int,
     val mapId: Int,
     val text: String,
@@ -27,7 +28,22 @@ data class ReviewWebsocketDAO(
     val updatedAt: String,
     val curatedAt: String?,
     val deletedAt: String?
-)
+) {
+    companion object {
+        fun wrapRow(row: ResultRow): ReviewWebsocketDTO {
+            return ReviewWebsocketDTO(
+                row[Review.userId].value,
+                row[Review.mapId].value,
+                row[Review.text],
+                row[Review.sentiment],
+                row[Review.createdAt].toKotlinInstant().toString(),
+                row[Review.updatedAt].toKotlinInstant().toString(),
+                row[Review.curatedAt]?.toKotlinInstant()?.toString(),
+                row[Review.deletedAt]?.toKotlinInstant()?.toString()
+            )
+        }
+    }
+}
 
 suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompositeId: ReviewUpdateInfo, holder: ChannelHolder, onlyNonDeleted: Boolean) {
     transaction {
@@ -39,17 +55,8 @@ suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompo
                     Op.TRUE
                 }
             }
-            .firstOrNull()?.let {
-                ReviewWebsocketDAO(
-                    userId = it[Review.userId].value,
-                    mapId = it[Review.mapId].value,
-                    text = it[Review.text],
-                    sentiment = it[Review.sentiment],
-                    createdAt = it[Review.createdAt].toKotlinInstant().toString(),
-                    updatedAt = it[Review.updatedAt].toKotlinInstant().toString(),
-                    curatedAt = it[Review.curatedAt]?.toKotlinInstant()?.toString(),
-                    deletedAt = it[Review.deletedAt]?.toKotlinInstant()?.toString()
-                )
+            .firstOrNull()?.let { row ->
+                ReviewWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
         val wsMsg = inlineJackson.writeValueAsString(WebsocketMessage(messageType, summary))
