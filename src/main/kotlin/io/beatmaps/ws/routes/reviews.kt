@@ -64,19 +64,19 @@ fun Route.reviewsWebsocket() {
 
     application.rabbitOptional {
         consumeAck("ws.reviewStream.created", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_CREATED, reviewCompositeId, holder, true)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_CREATE, reviewCompositeId, holder, true)
         }
 
         consumeAck("ws.reviewStream.updated", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_UPDATED, reviewCompositeId, holder, true)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_UPDATE, reviewCompositeId, holder, true)
         }
 
         consumeAck("ws.reviewStream.deleted", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_DELETED, reviewCompositeId, holder, false)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_DELETE, reviewCompositeId, holder, false)
         }
 
         consumeAck("ws.reviewStream.curated", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_CURATED, reviewCompositeId, holder, true)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_CURATE, reviewCompositeId, holder, true)
         }
     }
 

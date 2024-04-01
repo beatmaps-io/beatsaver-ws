@@ -12,10 +12,10 @@ enum class WebsocketMessageType {
     MAP_UPDATE,
     MAP_DELETE,
     VOTE,
-    REVIEW_CREATED,
-    REVIEW_UPDATED,
-    REVIEW_DELETED,
-    REVIEW_CURATED
+    REVIEW_CREATE,
+    REVIEW_UPDATE,
+    REVIEW_DELETE,
+    REVIEW_CURATE
 }
 data class WebsocketMessage(val type: WebsocketMessageType, val msg: Any)
 data class ChannelHolder(var channels: List<Channel<String>> = listOf())
