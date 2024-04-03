@@ -9,7 +9,6 @@ import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
@@ -27,7 +26,6 @@ data class ReviewWebsocketDTO(
     val createdAt: String,
     val updatedAt: String,
     val curatedAt: String?,
-    val deletedAt: String?
 ) {
     companion object {
         fun wrapRow(row: ResultRow): ReviewWebsocketDTO {
@@ -39,21 +37,16 @@ data class ReviewWebsocketDTO(
                 row[Review.createdAt].toKotlinInstant().toString(),
                 row[Review.updatedAt].toKotlinInstant().toString(),
                 row[Review.curatedAt]?.toKotlinInstant()?.toString(),
-                row[Review.deletedAt]?.toKotlinInstant()?.toString()
             )
         }
     }
 }
 
-suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompositeId: ReviewUpdateInfo, holder: ChannelHolder, onlyNonDeleted: Boolean) {
+suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompositeId: ReviewUpdateInfo, holder: ChannelHolder) {
     transaction {
         Review
             .select {
-                (Review.mapId eq reviewCompositeId.mapId) and (Review.userId eq reviewCompositeId.userId) and if (onlyNonDeleted) {
-                    Review.deletedAt.isNull()
-                } else {
-                    Op.TRUE
-                }
+                (Review.mapId eq reviewCompositeId.mapId) and (Review.userId eq reviewCompositeId.userId)
             }
             .firstOrNull()?.let { row ->
                 ReviewWebsocketDTO.wrapRow(row)
@@ -71,19 +64,22 @@ fun Route.reviewsWebsocket() {
 
     application.rabbitOptional {
         consumeAck("ws.reviewStream.created", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_CREATE, reviewCompositeId, holder, true)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_CREATE, reviewCompositeId, holder)
         }
 
         consumeAck("ws.reviewStream.updated", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_UPDATE, reviewCompositeId, holder, true)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_UPDATE, reviewCompositeId, holder)
         }
 
         consumeAck("ws.reviewStream.deleted", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_DELETE, reviewCompositeId, holder, false)
+            val wsMsg = inlineJackson.writeValueAsString(WebsocketMessage(WebsocketMessageType.REVIEW_DELETE, reviewCompositeId))
+            loopAndTerminateOnError(holder) {
+                it.send(wsMsg)
+            }
         }
 
         consumeAck("ws.reviewStream.curated", (ReviewUpdateInfo::class)) { _, reviewCompositeId ->
-            retrieveAndSendReview(WebsocketMessageType.REVIEW_CURATE, reviewCompositeId, holder, true)
+            retrieveAndSendReview(WebsocketMessageType.REVIEW_CURATE, reviewCompositeId, holder)
         }
     }
 
