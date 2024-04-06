@@ -1,14 +1,18 @@
 package io.beatmaps.ws.routes
 
+import io.beatmaps.common.api.ReviewSentiment
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
 import io.beatmaps.common.inlineJackson
+import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
+import kotlinx.datetime.Instant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
@@ -22,10 +26,10 @@ data class ReviewWebsocketDTO(
     val userId: Int,
     val mapId: Int,
     val text: String,
-    val sentiment: Int,
-    val createdAt: String,
-    val updatedAt: String,
-    val curatedAt: String?
+    val sentiment: ReviewSentiment,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+    val curatedAt: Instant? = null
 ) {
     companion object {
         fun wrapRow(row: ResultRow): ReviewWebsocketDTO {
@@ -33,10 +37,10 @@ data class ReviewWebsocketDTO(
                 row[Review.userId].value,
                 row[Review.mapId].value,
                 row[Review.text],
-                row[Review.sentiment],
-                row[Review.createdAt].toKotlinInstant().toString(),
-                row[Review.updatedAt].toKotlinInstant().toString(),
-                row[Review.curatedAt]?.toKotlinInstant()?.toString()
+                ReviewSentiment.fromInt(row[Review.sentiment]),
+                row[Review.createdAt].toKotlinInstant(),
+                row[Review.updatedAt].toKotlinInstant(),
+                row[Review.curatedAt]?.toKotlinInstant()
             )
         }
     }
@@ -46,13 +50,13 @@ suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompo
     transaction {
         Review
             .select {
-                (Review.mapId eq reviewCompositeId.mapId) and (Review.userId eq reviewCompositeId.userId)
+                (Review.mapId eq reviewCompositeId.mapId) and (Review.userId eq reviewCompositeId.userId) and Review.deletedAt.isNull()
             }
             .firstOrNull()?.let { row ->
                 ReviewWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = inlineJackson.writeValueAsString(WebsocketMessage(messageType, summary))
+        val wsMsg = json.encodeToString(WebsocketMessage(messageType, summary))
         loopAndTerminateOnError(holder) {
             it.send(wsMsg)
         }

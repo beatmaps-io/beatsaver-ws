@@ -4,12 +4,13 @@ import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Beatmap
 import io.beatmaps.common.dbo.complexToBeatmap
 import io.beatmaps.common.dbo.joinVersions
-import io.beatmaps.common.inlineJackson
+import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -42,7 +43,7 @@ fun Route.votesWebsocket() {
                         )
                     }
             }?.let { summary ->
-                val wsMsg = inlineJackson.writeValueAsString(WebsocketMessage(WebsocketMessageType.VOTE, summary))
+                val wsMsg = json.encodeToString(WebsocketMessage(WebsocketMessageType.VOTE, summary))
                 loopAndTerminateOnError(holder) {
                     it.send(wsMsg)
                 }
