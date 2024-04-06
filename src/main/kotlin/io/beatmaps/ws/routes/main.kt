@@ -6,12 +6,21 @@ import io.ktor.websocket.Frame
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlin.coroutines.EmptyCoroutineContext
 
 enum class WebsocketMessageType {
-    MAP_UPDATE, MAP_DELETE, VOTE
+    MAP_UPDATE,
+    MAP_DELETE,
+    VOTE,
+    REVIEW_CREATE,
+    REVIEW_UPDATE,
+    REVIEW_DELETE,
+    REVIEW_CURATE
 }
-data class WebsocketMessage(val type: WebsocketMessageType, val msg: Any)
+
+@Serializable
+data class WebsocketMessage<T>(val type: WebsocketMessageType, val msg: T)
 data class ChannelHolder(var channels: List<Channel<String>> = listOf())
 
 suspend fun loopAndTerminateOnError(holder: ChannelHolder, block: suspend (Channel<String>) -> Unit) {
@@ -52,4 +61,5 @@ suspend fun DefaultWebSocketServerSession.websocketConnection(holder: ChannelHol
 fun Route.websockets() {
     mapsWebsocket()
     votesWebsocket()
+    reviewsWebsocket()
 }

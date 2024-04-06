@@ -1,7 +1,7 @@
 package io.beatmaps.ws.routes
 
 import io.beatmaps.common.consumeAck
-import io.beatmaps.common.inlineJackson
+import io.beatmaps.common.jackson
 import io.beatmaps.common.rabbitOptional
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
@@ -11,8 +11,8 @@ fun Route.mapsWebsocket() {
     val holder = ChannelHolder()
 
     application.rabbitOptional {
-        consumeAck("ws.mapStream", WebsocketMessage::class) { _, wsMsg ->
-            val wsMsgStr = inlineJackson.writeValueAsString(wsMsg)
+        consumeAck("ws.mapStream", Any::class) { _, wsMsg ->
+            val wsMsgStr = jackson.writeValueAsString(wsMsg)
             loopAndTerminateOnError(holder) {
                 it.send(wsMsgStr)
             }
