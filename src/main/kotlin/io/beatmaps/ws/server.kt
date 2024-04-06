@@ -72,6 +72,9 @@ fun Application.ws() {
                 queueDeclare("ws.voteStream", true, false, false, genericQueueConfig)
                 queueBind("ws.voteStream", "beatmaps", "voteupdate.*")
 
+                queueDeclare("ws.reviewStream", true, false, false, genericQueueConfig)
+                queueBind("ws.reviewStream", "beatmaps", "reviews.*.*")
+
                 queueDeclare("ws.mapStream", true, false, false, genericQueueConfig)
                 queueBind("ws.mapStream", "beatmaps", "ws.map.*")
             }
