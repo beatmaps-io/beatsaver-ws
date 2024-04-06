@@ -18,6 +18,7 @@ enum class WebsocketMessageType {
     REVIEW_DELETE,
     REVIEW_CURATE
 }
+
 @Serializable
 data class WebsocketMessage<T>(val type: WebsocketMessageType, val msg: T)
 data class ChannelHolder(var channels: List<Channel<String>> = listOf())
