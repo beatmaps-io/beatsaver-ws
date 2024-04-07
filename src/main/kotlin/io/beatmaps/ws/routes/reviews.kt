@@ -4,8 +4,8 @@ import io.beatmaps.common.api.ReviewSentiment
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
 import io.beatmaps.common.inlineJackson
-import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
+import io.beatmaps.ws.wsJson
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
@@ -56,7 +56,7 @@ suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompo
                 ReviewWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = json.encodeToString(WebsocketMessage(messageType, summary))
+        val wsMsg = wsJson.encodeToString(WebsocketMessage(messageType, summary))
         loopAndTerminateOnError(holder) {
             it.send(wsMsg)
         }

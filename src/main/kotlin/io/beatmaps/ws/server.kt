@@ -26,11 +26,13 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
+import kotlinx.serialization.json.Json
 import pl.jutupe.ktor_rabbitmq.RabbitMQ
 import java.time.Duration
 
 val port = System.getenv("LISTEN_PORT")?.toIntOrNull() ?: 3030
 val host = System.getenv("LISTEN_HOST") ?: "127.0.0.1"
+val wsJson = Json
 
 fun main() {
     setupLogging()
