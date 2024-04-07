@@ -4,8 +4,8 @@ import io.beatmaps.common.api.ReviewSentiment
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
 import io.beatmaps.common.inlineJackson
-import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
+import io.beatmaps.ws.wsJson
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
@@ -17,14 +17,18 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.lang.Integer.toHexString
 
 @Serializable
 data class ReviewUpdateInfo(val mapId: Int, val userId: Int)
 
 @Serializable
+data class ReviewDeleteDTO(val mapId: String, val userId: Int)
+
+@Serializable
 data class ReviewWebsocketDTO(
     val userId: Int,
-    val mapId: Int,
+    val mapId: String,
     val text: String,
     val sentiment: ReviewSentiment,
     val createdAt: Instant,
@@ -35,7 +39,7 @@ data class ReviewWebsocketDTO(
         fun wrapRow(row: ResultRow): ReviewWebsocketDTO {
             return ReviewWebsocketDTO(
                 row[Review.userId].value,
-                row[Review.mapId].value,
+                toHexString(row[Review.mapId].value),
                 row[Review.text],
                 ReviewSentiment.fromInt(row[Review.sentiment]),
                 row[Review.createdAt].toKotlinInstant(),
@@ -56,7 +60,7 @@ suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompo
                 ReviewWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = json.encodeToString(WebsocketMessage(messageType, summary))
+        val wsMsg = wsJson.encodeToString(WebsocketMessage(messageType, summary))
         loopAndTerminateOnError(holder) {
             it.send(wsMsg)
         }
@@ -90,7 +94,7 @@ fun Route.reviewsWebsocket() {
                     val wsMsg = inlineJackson.writeValueAsString(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_DELETE,
-                            reviewCompositeId
+                            ReviewDeleteDTO(toHexString(reviewCompositeId.mapId), reviewCompositeId.userId)
                         )
                     )
                     loopAndTerminateOnError(holder) {
