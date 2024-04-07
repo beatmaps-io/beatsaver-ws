@@ -17,14 +17,18 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.lang.Integer.toHexString
 
 @Serializable
 data class ReviewUpdateInfo(val mapId: Int, val userId: Int)
 
 @Serializable
+data class ReviewDeleteDTO(val mapId: String, val userId: Int)
+
+@Serializable
 data class ReviewWebsocketDTO(
     val userId: Int,
-    val mapId: Int,
+    val mapId: String,
     val text: String,
     val sentiment: ReviewSentiment,
     val createdAt: Instant,
@@ -35,7 +39,7 @@ data class ReviewWebsocketDTO(
         fun wrapRow(row: ResultRow): ReviewWebsocketDTO {
             return ReviewWebsocketDTO(
                 row[Review.userId].value,
-                row[Review.mapId].value,
+                toHexString(row[Review.mapId].value),
                 row[Review.text],
                 ReviewSentiment.fromInt(row[Review.sentiment]),
                 row[Review.createdAt].toKotlinInstant(),
@@ -90,7 +94,7 @@ fun Route.reviewsWebsocket() {
                     val wsMsg = inlineJackson.writeValueAsString(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_DELETE,
-                            reviewCompositeId
+                            ReviewDeleteDTO(toHexString(reviewCompositeId.mapId), reviewCompositeId.userId)
                         )
                     )
                     loopAndTerminateOnError(holder) {
