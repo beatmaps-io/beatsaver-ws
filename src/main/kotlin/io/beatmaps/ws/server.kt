@@ -42,13 +42,6 @@ fun Application.ws() {
     installMetrics()
 
     install(ContentNegotiation) {
-        /*jackson {
-            enable(SerializationFeature.INDENT_OUTPUT)
-            registerModule(JavaTimeModule())
-            registerModule(KotlinTimeModule())
-            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        }*/
         json(json)
     }
 
