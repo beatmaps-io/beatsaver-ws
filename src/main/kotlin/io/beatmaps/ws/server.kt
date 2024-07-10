@@ -66,7 +66,7 @@ fun Application.ws() {
 
     if (rabbitHost.isNotEmpty()) {
         install(RabbitMQ) {
-            setupAMQP {
+            setupAMQP(false) {
                 queueDeclare("ws.voteStream", true, false, false, genericQueueConfig)
                 queueBind("ws.voteStream", "beatmaps", "voteupdate.*")
 
