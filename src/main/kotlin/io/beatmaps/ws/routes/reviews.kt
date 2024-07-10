@@ -3,9 +3,8 @@ package io.beatmaps.ws.routes
 import io.beatmaps.common.api.ReviewSentiment
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
-import io.beatmaps.common.inlineJackson
+import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
-import io.beatmaps.ws.wsJson
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
@@ -15,7 +14,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.lang.Integer.toHexString
 
@@ -53,14 +52,15 @@ data class ReviewWebsocketDTO(
 suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompositeId: ReviewUpdateInfo, holder: ChannelHolder) {
     transaction {
         Review
-            .select {
+            .selectAll()
+            .where {
                 (Review.mapId eq reviewCompositeId.mapId) and (Review.userId eq reviewCompositeId.userId) and Review.deletedAt.isNull()
             }
             .firstOrNull()?.let { row ->
                 ReviewWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = wsJson.encodeToString(WebsocketMessage(messageType, summary))
+        val wsMsg = json.encodeToString(WebsocketMessage(messageType, summary))
         loopAndTerminateOnError(holder) {
             it.send(wsMsg)
         }
@@ -71,7 +71,7 @@ fun Route.reviewsWebsocket() {
     val holder = ChannelHolder()
 
     application.rabbitOptional {
-        consumeAck("ws.reviewStream", (ReviewUpdateInfo::class)) { routingKey, reviewCompositeId ->
+        consumeAck("ws.reviewStream", ReviewUpdateInfo.serializer()) { routingKey, reviewCompositeId ->
             val messageType = if (routingKey.endsWith(".created")) {
                 WebsocketMessageType.REVIEW_CREATE
             } else if (routingKey.endsWith(".updated")) {
@@ -91,7 +91,7 @@ fun Route.reviewsWebsocket() {
                     retrieveAndSendReview(messageType, reviewCompositeId, holder)
                 }
                 WebsocketMessageType.REVIEW_DELETE -> {
-                    val wsMsg = inlineJackson.writeValueAsString(
+                    val wsMsg = json.encodeToString(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_DELETE,
                             ReviewDeleteDTO(toHexString(reviewCompositeId.mapId), reviewCompositeId.userId)

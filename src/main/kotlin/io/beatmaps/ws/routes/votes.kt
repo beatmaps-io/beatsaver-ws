@@ -4,15 +4,16 @@ import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Beatmap
 import io.beatmaps.common.dbo.complexToBeatmap
 import io.beatmaps.common.dbo.joinVersions
+import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
-import io.beatmaps.ws.wsJson
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.lang.Integer.toHexString
 
@@ -23,11 +24,12 @@ fun Route.votesWebsocket() {
     val holder = ChannelHolder()
 
     application.rabbitOptional {
-        consumeAck("ws.voteStream", Int::class) { _, mapId ->
+        consumeAck("ws.voteStream", Int.serializer()) { _, mapId ->
             transaction {
                 Beatmap
                     .joinVersions(false)
-                    .select {
+                    .selectAll()
+                    .where {
                         (Beatmap.id eq mapId) and Beatmap.deletedAt.isNull()
                     }
                     .complexToBeatmap()
@@ -43,7 +45,7 @@ fun Route.votesWebsocket() {
                         )
                     }
             }?.let { summary ->
-                val wsMsg = wsJson.encodeToString(WebsocketMessage(WebsocketMessageType.VOTE, summary))
+                val wsMsg = json.encodeToString(WebsocketMessage(WebsocketMessageType.VOTE, summary))
                 loopAndTerminateOnError(holder) {
                     it.send(wsMsg)
                 }

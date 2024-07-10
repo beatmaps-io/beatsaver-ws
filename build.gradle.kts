@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    kotlin("jvm") version "1.9.10"
-    kotlin("plugin.serialization") version "1.9.10"
+    kotlin("jvm") version "1.9.20"
+    kotlin("plugin.serialization") version "1.9.20"
     id("org.jlleitschuh.gradle.ktlint") version "11.5.1"
     application
 }
@@ -15,7 +15,7 @@ version = "1.0-SNAPSHOT"
 
 kotlin {
     jvmToolchain {
-        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(15))
+        this.languageVersion.set(JavaLanguageVersion.of(16))
     }
     sourceSets.all {
         with(languageSettings) {
@@ -39,9 +39,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
-    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
     implementation("io.ktor:ktor-server-core:$ktorVersion")
@@ -49,7 +47,7 @@ dependencies {
     implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
     implementation("io.ktor:ktor-client-apache:$ktorVersion")
-    implementation("ch.qos.logback:logback-classic:1.4.7")
+    implementation("ch.qos.logback:logback-classic:1.5.6")
     implementation("io.ktor:ktor-server-forwarded-header:$ktorVersion")
     implementation("io.ktor:ktor-server-locations:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
@@ -63,15 +61,15 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
 
     // Database drivers
-    implementation("org.postgresql:postgresql:42.5.4")
-    implementation("pl.jutupe:ktor-rabbitmq:0.4.5")
-    implementation("com.rabbitmq:amqp-client:5.16.0")
+    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("pl.jutupe:ktor-rabbitmq:0.5.19")
+    implementation("com.rabbitmq:amqp-client:5.21.0")
 
     implementation("io.beatmaps:BeatMaps-CommonMP:1.0.+")
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "15"
+    kotlinOptions.jvmTarget = "16"
 }
 
 application {
