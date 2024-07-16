@@ -65,4 +65,5 @@ fun Route.websockets() {
     mapsWebsocket()
     votesWebsocket()
     reviewsWebsocket()
+    reviewRepliesWebsocket()
 }
