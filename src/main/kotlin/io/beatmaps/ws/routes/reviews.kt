@@ -3,7 +3,6 @@ package io.beatmaps.ws.routes
 import io.beatmaps.common.api.ReviewSentiment
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
-import io.beatmaps.common.inlineJackson
 import io.beatmaps.common.rabbitOptional
 import io.beatmaps.ws.wsJson
 import io.ktor.server.routing.Route
@@ -91,7 +90,7 @@ fun Route.reviewsWebsocket() {
                     retrieveAndSendReview(messageType, reviewCompositeId, holder)
                 }
                 WebsocketMessageType.REVIEW_DELETE -> {
-                    val wsMsg = inlineJackson.writeValueAsString(
+                    val wsMsg = wsJson.encodeToString(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_DELETE,
                             ReviewDeleteDTO(toHexString(reviewCompositeId.mapId), reviewCompositeId.userId)
