@@ -79,6 +79,9 @@ fun Application.ws() {
 
                 queueDeclare("ws.mapStream", true, false, false, genericQueueConfig)
                 queueBind("ws.mapStream", "beatmaps", "ws.map.*")
+
+                queueDeclare("ws.reviewReplyStream", true, false, false, genericQueueConfig)
+                queueBind("ws.reviewReplyStream", "beatmaps", "ws.review-replies.*")
             }
         }
     }
