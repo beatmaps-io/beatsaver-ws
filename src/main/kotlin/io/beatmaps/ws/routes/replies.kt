@@ -1,6 +1,7 @@
 package io.beatmaps.ws.routes
 
 import io.beatmaps.common.consumeAck
+import io.beatmaps.common.dbo.Review
 import io.beatmaps.common.dbo.ReviewReply
 import io.beatmaps.common.rabbitOptional
 import io.ktor.server.routing.Route
@@ -10,6 +11,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
+import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
@@ -22,7 +24,9 @@ data class ReplyDeleteDTO(val id: Int)
 data class ReplyWebsocketDTO(
     val id: Int,
     val userId: Int,
+    val mapId: Int,
     val reviewId: Int,
+    val reviewUserId: Int,
     val text: String,
     val createdAt: Instant,
     val updatedAt: Instant
@@ -32,7 +36,9 @@ data class ReplyWebsocketDTO(
             return ReplyWebsocketDTO(
                 row[ReviewReply.id].value,
                 row[ReviewReply.userId].value,
+                row[Review.mapId].value,
                 row[ReviewReply.reviewId].value,
+                row[Review.userId].value,
                 row[ReviewReply.text],
                 row[ReviewReply.createdAt].toKotlinInstant(),
                 row[ReviewReply.updatedAt].toKotlinInstant()
@@ -44,6 +50,7 @@ data class ReplyWebsocketDTO(
 suspend fun retrieveAndSendReplies(messageType: WebsocketMessageType, replyId: Int, holder: ChannelHolder) {
     transaction {
         ReviewReply
+            .join(Review, JoinType.LEFT, onColumn = Review.id, otherColumn = ReviewReply.reviewId)
             .selectAll()
             .where {
                 ReviewReply.id eq replyId and ReviewReply.deletedAt.isNull()
