@@ -26,7 +26,7 @@ data class ReplyWebsocketDTO(
     val reviewId: Int,
     val text: String,
     val createdAt: Instant,
-    val updatedAt: Instant,
+    val updatedAt: Instant
 ) {
     companion object {
         fun wrapRow(row: ResultRow): ReplyWebsocketDTO {
