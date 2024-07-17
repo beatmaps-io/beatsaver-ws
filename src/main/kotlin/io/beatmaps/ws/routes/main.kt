@@ -16,7 +16,10 @@ enum class WebsocketMessageType {
     REVIEW_CREATE,
     REVIEW_UPDATE,
     REVIEW_DELETE,
-    REVIEW_CURATE
+    REVIEW_CURATE,
+    REVIEW_REPLY_CREATE,
+    REVIEW_REPLY_UPDATE,
+    REVIEW_REPLY_DELETE
 }
 
 @Serializable
@@ -62,4 +65,5 @@ fun Route.websockets() {
     mapsWebsocket()
     votesWebsocket()
     reviewsWebsocket()
+    reviewRepliesWebsocket()
 }
