@@ -1,13 +1,16 @@
 package io.beatmaps.ws.routes
 
+import io.beatmaps.common.json
 import io.ktor.server.routing.Route
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.websocket.Frame
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.serialization.serializer
 
 enum class WebsocketMessageType {
     MAP_UPDATE,
@@ -16,21 +19,33 @@ enum class WebsocketMessageType {
     REVIEW_CREATE,
     REVIEW_UPDATE,
     REVIEW_DELETE,
-    REVIEW_CURATE
+    REVIEW_CURATE,
+    REVIEW_REPLY_CREATE,
+    REVIEW_REPLY_UPDATE,
+    REVIEW_REPLY_DELETE
 }
 
 @Serializable
 data class WebsocketMessage<T>(val type: WebsocketMessageType, val msg: T)
-data class ChannelHolder(var channels: List<Channel<String>> = listOf())
+data class ChannelHolder(var channels: List<Channel<String>> = listOf()) {
+    suspend inline fun <reified T> send(msg: T) = send(serializer<T>(), msg)
 
-suspend fun loopAndTerminateOnError(holder: ChannelHolder, block: suspend (Channel<String>) -> Unit) {
-    holder.channels.forEach {
-        try {
-            block(it)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            holder.channels = holder.channels.minus(it)
-            it.close()
+    suspend fun <T> send(serializer: KSerializer<T>, msg: T) {
+        val msgStr = json.encodeToString(serializer, msg)
+        loopAndTerminateOnError {
+            it.send(msgStr)
+        }
+    }
+
+    private suspend fun loopAndTerminateOnError(block: suspend (Channel<String>) -> Unit) {
+        channels.forEach {
+            try {
+                block(it)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                channels = channels.minus(it)
+                it.close()
+            }
         }
     }
 }
@@ -40,7 +55,7 @@ suspend fun DefaultWebSocketServerSession.websocketConnection(holder: ChannelHol
         holder.channels = holder.channels.plus(it)
     }.let { channel ->
         try {
-            launch(EmptyCoroutineContext) {
+            launch(Dispatchers.Default) {
                 channel.consumeEach {
                     outgoing.send(Frame.Text(it))
                 }
@@ -62,4 +77,5 @@ fun Route.websockets() {
     mapsWebsocket()
     votesWebsocket()
     reviewsWebsocket()
+    reviewRepliesWebsocket()
 }

@@ -1,18 +1,15 @@
 package io.beatmaps.ws
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.beatmaps.common.KotlinTimeModule
 import io.beatmaps.common.db.setupDB
 import io.beatmaps.common.genericQueueConfig
 import io.beatmaps.common.installMetrics
+import io.beatmaps.common.json
 import io.beatmaps.common.rabbitHost
 import io.beatmaps.common.setupAMQP
 import io.beatmaps.common.setupLogging
 import io.beatmaps.ws.routes.websockets
 import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.jackson.jackson
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
@@ -26,13 +23,11 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
-import kotlinx.serialization.json.Json
 import pl.jutupe.ktor_rabbitmq.RabbitMQ
 import java.time.Duration
 
 val port = System.getenv("LISTEN_PORT")?.toIntOrNull() ?: 3030
 val host = System.getenv("LISTEN_HOST") ?: "127.0.0.1"
-val wsJson = Json
 
 fun main() {
     setupLogging()
@@ -47,13 +42,7 @@ fun Application.ws() {
     installMetrics()
 
     install(ContentNegotiation) {
-        jackson {
-            enable(SerializationFeature.INDENT_OUTPUT)
-            registerModule(JavaTimeModule())
-            registerModule(KotlinTimeModule())
-            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        }
+        json(json)
     }
 
     install(Locations)
@@ -70,7 +59,7 @@ fun Application.ws() {
 
     if (rabbitHost.isNotEmpty()) {
         install(RabbitMQ) {
-            setupAMQP {
+            setupAMQP(false) {
                 queueDeclare("ws.voteStream", true, false, false, genericQueueConfig)
                 queueBind("ws.voteStream", "beatmaps", "voteupdate.*")
 
@@ -79,6 +68,9 @@ fun Application.ws() {
 
                 queueDeclare("ws.mapStream", true, false, false, genericQueueConfig)
                 queueBind("ws.mapStream", "beatmaps", "ws.map.*")
+
+                queueDeclare("ws.reviewReplyStream", true, false, false, genericQueueConfig)
+                queueBind("ws.reviewReplyStream", "beatmaps", "ws.review-replies.*")
             }
         }
     }
