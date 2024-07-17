@@ -4,18 +4,17 @@ import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
 import io.beatmaps.common.dbo.ReviewReply
 import io.beatmaps.common.rabbitOptional
-import io.beatmaps.ws.wsJson
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.webSocket
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.JoinType
+import kotlinx.serialization.builtins.serializer
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 @Serializable
@@ -52,17 +51,17 @@ suspend fun retrieveAndSendReplies(messageType: WebsocketMessageType, replyId: I
     transaction {
         ReviewReply
             .join(Review, JoinType.LEFT, onColumn = Review.id, otherColumn = ReviewReply.reviewId)
-            .select {
+            .selectAll()
+            .where {
                 ReviewReply.id eq replyId and ReviewReply.deletedAt.isNull()
             }
             .firstOrNull()?.let { row ->
                 ReplyWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = wsJson.encodeToString(WebsocketMessage(messageType, summary))
-        loopAndTerminateOnError(holder) {
-            it.send(wsMsg)
-        }
+        holder.send(
+            WebsocketMessage(messageType, summary)
+        )
     }
 }
 
@@ -70,7 +69,7 @@ fun Route.reviewRepliesWebsocket() {
     val holder = ChannelHolder()
 
     application.rabbitOptional {
-        consumeAck("ws.reviewReplyStream", (Int::class)) { routingKey, replyId ->
+        consumeAck("ws.reviewReplyStream", Int.serializer()) { routingKey, replyId ->
             val messageType = if (routingKey.endsWith(".created")) {
                 WebsocketMessageType.REVIEW_REPLY_CREATE
             } else if (routingKey.endsWith(".updated")) {
@@ -87,15 +86,12 @@ fun Route.reviewRepliesWebsocket() {
                     retrieveAndSendReplies(messageType, replyId, holder)
                 }
                 WebsocketMessageType.REVIEW_REPLY_DELETE -> {
-                    val wsMsg = wsJson.encodeToString(
+                    holder.send(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_REPLY_DELETE,
                             ReplyDeleteDTO(replyId)
                         )
                     )
-                    loopAndTerminateOnError(holder) {
-                        it.send(wsMsg)
-                    }
                 }
                 else -> { /* NO OP */ }
             }
