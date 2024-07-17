@@ -3,7 +3,6 @@ package io.beatmaps.ws.routes
 import io.beatmaps.common.api.ReviewSentiment
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.Review
-import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
@@ -11,7 +10,6 @@ import io.ktor.server.websocket.webSocket
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
@@ -60,10 +58,9 @@ suspend fun retrieveAndSendReview(messageType: WebsocketMessageType, reviewCompo
                 ReviewWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = json.encodeToString(WebsocketMessage(messageType, summary))
-        loopAndTerminateOnError(holder) {
-            it.send(wsMsg)
-        }
+        holder.send(
+            WebsocketMessage(messageType, summary)
+        )
     }
 }
 
@@ -91,15 +88,12 @@ fun Route.reviewsWebsocket() {
                     retrieveAndSendReview(messageType, reviewCompositeId, holder)
                 }
                 WebsocketMessageType.REVIEW_DELETE -> {
-                    val wsMsg = json.encodeToString(
+                    holder.send(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_DELETE,
                             ReviewDeleteDTO(toHexString(reviewCompositeId.mapId), reviewCompositeId.userId)
                         )
                     )
-                    loopAndTerminateOnError(holder) {
-                        it.send(wsMsg)
-                    }
                 }
                 else -> { /* NO OP */ }
             }

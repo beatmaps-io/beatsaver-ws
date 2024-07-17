@@ -2,7 +2,6 @@ package io.beatmaps.ws.routes
 
 import io.beatmaps.common.consumeAck
 import io.beatmaps.common.dbo.ReviewReply
-import io.beatmaps.common.json
 import io.beatmaps.common.rabbitOptional
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
@@ -11,7 +10,6 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
@@ -54,10 +52,9 @@ suspend fun retrieveAndSendReplies(messageType: WebsocketMessageType, replyId: I
                 ReplyWebsocketDTO.wrapRow(row)
             }
     }?.let { summary ->
-        val wsMsg = json.encodeToString(WebsocketMessage(messageType, summary))
-        loopAndTerminateOnError(holder) {
-            it.send(wsMsg)
-        }
+        holder.send(
+            WebsocketMessage(messageType, summary)
+        )
     }
 }
 
@@ -82,15 +79,12 @@ fun Route.reviewRepliesWebsocket() {
                     retrieveAndSendReplies(messageType, replyId, holder)
                 }
                 WebsocketMessageType.REVIEW_REPLY_DELETE -> {
-                    val wsMsg = json.encodeToString(
+                    holder.send(
                         WebsocketMessage(
                             WebsocketMessageType.REVIEW_REPLY_DELETE,
                             ReplyDeleteDTO(replyId)
                         )
                     )
-                    loopAndTerminateOnError(holder) {
-                        it.send(wsMsg)
-                    }
                 }
                 else -> { /* NO OP */ }
             }
