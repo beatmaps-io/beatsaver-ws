@@ -17,7 +17,7 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
 @Serializable
-data class ReplyDeleteDTO(val replyId: Int)
+data class ReplyDeleteDTO(val id: Int)
 
 @Serializable
 data class ReplyWebsocketDTO(
